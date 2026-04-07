@@ -565,7 +565,7 @@
             <!-- NEW LAYOUT: Middle chart (Accuracy Trend) is primary, takes full width and more space -->
             <div class="primary-chart-container">
                 <div class="primary-chart-card">
-                    <h3>📅 Accuracy Trend (Daily) — Main Focus</h3>
+                    <h3>📅 Accuracy Trend</h3>
                     <canvas id="accuracyTrendChart"></canvas>
                 </div>
             </div>
@@ -775,7 +775,7 @@
             if (accuracyTrendChartInstance) accuracyTrendChartInstance.destroy();
             accuracyTrendChartInstance = new Chart(accuracyCanvas, {
                 type: 'line',
-                data: { labels: dateLabels, datasets: [{ label: 'Accuracy % (Daily Progress)', data: accuracies, fill: true, tension: 0.3, borderColor: '#2A9D8F', backgroundColor: 'rgba(42, 157, 143, 0.15)', borderWidth: 4, pointBackgroundColor: '#E9C46A', pointBorderColor: '#264653', pointRadius: 6, pointHoverRadius: 8 }] },
+                data: { labels: dateLabels, datasets: [{ label: 'Accuracy %', data: accuracies, fill: true, tension: 0.3, borderColor: '#2A9D8F', backgroundColor: 'rgba(42, 157, 143, 0.15)', borderWidth: 4, pointBackgroundColor: '#E9C46A', pointBorderColor: '#264653', pointRadius: 6, pointHoverRadius: 8 }] },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: true,
