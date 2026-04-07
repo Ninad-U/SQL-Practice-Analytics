@@ -55,6 +55,7 @@
             flex-wrap: wrap;
             gap: 1.5rem;
             justify-content: space-between;
+            margin-bottom: 2rem;
         }
 
         .kpi-card {
@@ -89,62 +90,68 @@
             letter-spacing: 0.5px;
         }
 
-        /* NEW LAYOUT: 3 charts row with middle chart taking more space (long/visible) */
-        .charts-row {
+        /* NEW LAYOUT: Middle chart takes full width, first and third charts below, equally sized */
+        .primary-chart-container {
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+
+        .primary-chart-card {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid #e2edf5;
+            width: 100%;
+        }
+
+        .primary-chart-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1c617f;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .primary-chart-card canvas {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            min-height: 320px;
+        }
+
+        /* Two smaller charts row (first and third now below) */
+        .secondary-charts-row {
             display: flex;
             flex-wrap: wrap;
             gap: 1.5rem;
-            margin-top: 2rem;
+            margin-top: 0.5rem;
             width: 100%;
-            align-items: stretch;
         }
 
-        .chart-card {
+        .secondary-chart-card {
+            flex: 1;
+            min-width: 280px;
             background: white;
             border-radius: 24px;
             padding: 1rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             border: 1px solid #e2edf5;
             transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
         }
 
-        /* First and third chart: equally sized, smaller */
-        .chart-card:first-child,
-        .chart-card:last-child {
-            flex: 1;
-            min-width: 240px;
-        }
-
-        /* Middle chart: takes more space (long/wide), remains visible and prominent */
-        .chart-card:nth-child(2) {
-            flex: 2.2;
-            min-width: 320px;
-        }
-
-        .chart-card h3 {
+        .secondary-chart-card h3 {
             font-size: 1rem;
             font-weight: 700;
             color: #1c617f;
             margin-bottom: 0.75rem;
             text-align: center;
-            letter-spacing: -0.2px;
-            flex-shrink: 0;
         }
 
-        .chart-card canvas {
+        .secondary-chart-card canvas {
             width: 100%;
             height: auto;
-            flex: 1;
-            min-height: 220px;
-            max-height: 380px;
-        }
-
-        /* Make middle chart canvas slightly taller for emphasis */
-        .chart-card:nth-child(2) canvas {
-            min-height: 280px;
-            max-height: 420px;
+            max-height: 280px;
         }
 
         .filter-bar {
@@ -508,18 +515,12 @@
             .metrics-section {
                 padding: 1rem;
             }
-            .charts-row {
+            .secondary-charts-row {
                 flex-direction: column;
             }
-            /* On mobile, revert to full width but keep middle slightly taller */
-            .chart-card:first-child,
-            .chart-card:last-child,
-            .chart-card:nth-child(2) {
-                flex: 1;
-                min-width: auto;
-            }
-            .chart-card:nth-child(2) canvas {
-                min-height: 260px;
+            .primary-chart-card canvas {
+                max-height: 280px;
+                min-height: 240px;
             }
             #pastePane.active .paste-area textarea {
                 height: calc(100vh - 250px);
@@ -561,22 +562,26 @@
             </div>
             <div class="kpi-grid" id="kpiContainer"></div>
             
-            <!-- THREE CHARTS: First (Mistake Frequency), Middle (Accuracy Trend) which is longer/wider, Third (Topic Accuracy) equally sized as first -->
-            <div class="charts-row">
-                <div class="chart-card">
+            <!-- NEW LAYOUT: Middle chart (Accuracy Trend) is primary, takes full width and more space -->
+            <div class="primary-chart-container">
+                <div class="primary-chart-card">
+                    <h3>📅 Accuracy Trend (Daily) — Main Focus</h3>
+                    <canvas id="accuracyTrendChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- First and third charts now below, equally sized side by side -->
+            <div class="secondary-charts-row">
+                <div class="secondary-chart-card">
                     <h3>📈 Mistake Frequency Trend</h3>
                     <canvas id="mistakeChart"></canvas>
                 </div>
-                <div class="chart-card">
-                    <h3>📅 Accuracy Trend (Daily)</h3>
-                    <canvas id="accuracyTrendChart"></canvas>
-                </div>
-                <div class="chart-card">
+                <div class="secondary-chart-card">
                     <h3>🏷️ Topic-wise Accuracy</h3>
                     <canvas id="topicAccuracyChart"></canvas>
                 </div>
             </div>
-            <!-- Extra info: Remaining space below will be naturally filled by dashboard content if needed, but middle chart is prominent -->
+            <!-- Additional remaining space below is naturally filled by the metrics section padding/footer -->
         </div>
     </div>
 
@@ -743,7 +748,7 @@
     }
 
     function renderAllCharts() {
-        // 1) Mistake Frequency (first chart)
+        // 1) Mistake Frequency (now secondary - left)
         const canvasMistake = document.getElementById('mistakeChart');
         if (canvasMistake) {
             const counts = {};
@@ -763,19 +768,30 @@
             });
         }
 
-        // 2) Accuracy Trend (middle chart, longer)
+        // 2) PRIMARY CHART: Accuracy Trend (full width, main focus)
         const { labels: dateLabels, accuracies } = computeDailyAccuracy(currentFilteredData);
         const accuracyCanvas = document.getElementById('accuracyTrendChart');
         if (accuracyCanvas) {
             if (accuracyTrendChartInstance) accuracyTrendChartInstance.destroy();
             accuracyTrendChartInstance = new Chart(accuracyCanvas, {
                 type: 'line',
-                data: { labels: dateLabels, datasets: [{ label: 'Accuracy %', data: accuracies, fill: true, tension: 0.3, borderColor: '#2A9D8F', backgroundColor: 'rgba(42, 157, 143, 0.15)', borderWidth: 3, pointBackgroundColor: '#E9C46A', pointBorderColor: '#264653', pointRadius: 5 }] },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}%` } } }, scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Accuracy (%)' }, ticks: { callback: (val) => val + '%' } }, x: { title: { display: true, text: 'Date' } } } }
+                data: { labels: dateLabels, datasets: [{ label: 'Accuracy % (Daily Progress)', data: accuracies, fill: true, tension: 0.3, borderColor: '#2A9D8F', backgroundColor: 'rgba(42, 157, 143, 0.15)', borderWidth: 4, pointBackgroundColor: '#E9C46A', pointBorderColor: '#264653', pointRadius: 6, pointHoverRadius: 8 }] },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    plugins: { 
+                        legend: { position: 'top', labels: { font: { size: 12, weight: 'bold' } } },
+                        tooltip: { callbacks: { label: (ctx) => `Accuracy: ${ctx.raw.toFixed(1)}%` } } 
+                    },
+                    scales: { 
+                        y: { beginAtZero: true, max: 100, title: { display: true, text: 'Accuracy (%)', font: { weight: 'bold' } }, ticks: { callback: (val) => val + '%' } }, 
+                        x: { title: { display: true, text: 'Date', font: { weight: 'bold' } } } 
+                    }
+                }
             });
         }
 
-        // 3) Topic-wise Accuracy (third chart, horizontal bar)
+        // 3) Topic-wise Accuracy (secondary - right)
         const { topics, accuracies: topicAccuracies } = computeTopicAccuracy(currentFilteredData);
         const topicCanvas = document.getElementById('topicAccuracyChart');
         if (topicCanvas) {
