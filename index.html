@@ -89,24 +89,38 @@
             letter-spacing: 0.5px;
         }
 
-        /* 3 charts row layout */
+        /* NEW LAYOUT: 3 charts row with middle chart taking more space (long/visible) */
         .charts-row {
             display: flex;
             flex-wrap: wrap;
             gap: 1.5rem;
             margin-top: 2rem;
             width: 100%;
+            align-items: stretch;
         }
 
         .chart-card {
-            flex: 1;
-            min-width: 280px;
             background: white;
             border-radius: 24px;
             padding: 1rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             border: 1px solid #e2edf5;
             transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* First and third chart: equally sized, smaller */
+        .chart-card:first-child,
+        .chart-card:last-child {
+            flex: 1;
+            min-width: 240px;
+        }
+
+        /* Middle chart: takes more space (long/wide), remains visible and prominent */
+        .chart-card:nth-child(2) {
+            flex: 2.2;
+            min-width: 320px;
         }
 
         .chart-card h3 {
@@ -116,12 +130,21 @@
             margin-bottom: 0.75rem;
             text-align: center;
             letter-spacing: -0.2px;
+            flex-shrink: 0;
         }
 
         .chart-card canvas {
             width: 100%;
             height: auto;
-            max-height: 300px;
+            flex: 1;
+            min-height: 220px;
+            max-height: 380px;
+        }
+
+        /* Make middle chart canvas slightly taller for emphasis */
+        .chart-card:nth-child(2) canvas {
+            min-height: 280px;
+            max-height: 420px;
         }
 
         .filter-bar {
@@ -472,7 +495,7 @@
             display: none;
         }
         
-        /* Hide specified buttons */
+        /* Hidden buttons as per requirement */
         #importPasteBtn,
         #appendPasteBtn,
         #toggleBacktickBtn,
@@ -488,8 +511,15 @@
             .charts-row {
                 flex-direction: column;
             }
-            .chart-card canvas {
-                max-height: 250px;
+            /* On mobile, revert to full width but keep middle slightly taller */
+            .chart-card:first-child,
+            .chart-card:last-child,
+            .chart-card:nth-child(2) {
+                flex: 1;
+                min-width: auto;
+            }
+            .chart-card:nth-child(2) canvas {
+                min-height: 260px;
             }
             #pastePane.active .paste-area textarea {
                 height: calc(100vh - 250px);
@@ -531,7 +561,7 @@
             </div>
             <div class="kpi-grid" id="kpiContainer"></div>
             
-            <!-- THREE CHARTS IN A ROW: existing mistake line chart + two new ones -->
+            <!-- THREE CHARTS: First (Mistake Frequency), Middle (Accuracy Trend) which is longer/wider, Third (Topic Accuracy) equally sized as first -->
             <div class="charts-row">
                 <div class="chart-card">
                     <h3>📈 Mistake Frequency Trend</h3>
@@ -546,30 +576,23 @@
                     <canvas id="topicAccuracyChart"></canvas>
                 </div>
             </div>
+            <!-- Extra info: Remaining space below will be naturally filled by dashboard content if needed, but middle chart is prominent -->
         </div>
     </div>
 
     <div id="pastePane" class="main-tab-pane">
         <div class="paste-area">
-<!-- Placeholder: 'Paste records (tab-separated, NO header line). Each line must have 9 columns:
-Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Attempt
-06-04-2026	Find product names	Filtering	Easy	SELECT `product_id` FROM inventory;	SELECT `product_name` FROM inventory;	Wrong Column Selection	0	1
--->
-            <textarea id="pasteData" rows="10"></textarea>
-			
+            <textarea id="pasteData" rows="10" placeholder="Paste records (tab-separated, NO header line). Each line must have 9 columns:&#10;Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Attempt&#10;06-04-2026	Find product names	Filtering	Easy	SELECT `product_id` FROM inventory;	SELECT `product_name` FROM inventory;	Wrong Column Selection	0	1"></textarea>
 			<div class="paste-actions">
                 <button class="btn-primary" id="importPasteBtn">🚀 Import & Replace Records</button>
                 <button class="btn-primary" id="appendPasteBtn">➕ Append Records</button>
             </div>
-		
 		</div>
     </div>
 
     <div id="tablePane" class="main-tab-pane">
-		
         <div class="table-actions">
-            
-			<button class="btn-primary" id="toggleBacktickBtn">🎨 Show Backticks</button>
+            <button class="btn-primary" id="toggleBacktickBtn">🎨 Show Backticks</button>
             <button class="btn-primary" id="copyTableBtn">📋 Copy Table to Clipboard</button>
             <button class="btn-primary" id="refreshCardsFromTable">🔄 Refresh Cards from Table</button>
         </div>
@@ -593,14 +616,11 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
             const response = await fetch('./records.tsv');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const tsvText = await response.text();
-            
-            // Parse TSV - no header row, exactly 9 columns
             const lines = tsvText.trim().split(/\r?\n/);
             const loadedRecords = [];
-            
             for (let i = 0; i < lines.length; i++) {
                 const cols = lines[i].split('\t');
-                if (cols.length >= 9) {  // Safety check for invalid rows
+                if (cols.length >= 9) {
                     loadedRecords.push({
                         Date: cols[0].trim(),
                         Question: cols[1].trim(),
@@ -614,22 +634,16 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
                     });
                 }
             }
-            
-            if (loadedRecords.length === 0) {
-                throw new Error('No valid records found in TSV');
-            }
-            
+            if (loadedRecords.length === 0) throw new Error('No valid records found in TSV');
             practiceRecords = loadedRecords;
             return true;
         } catch (error) {
             console.error('Failed to load records.tsv:', error);
-            // Show error message to user
             document.getElementById('cardsContainer').innerHTML = '<div style="padding: 2rem; text-align: center; color: #b91c1c;">❌ Failed to load records.tsv. Please check that the file exists in the same directory.</div>';
             return false;
         }
     }
 
-    // Initialize app after data loads
     async function initApp() {
         const loaded = await loadDataFromTSV();
         if (loaded) {
@@ -681,23 +695,18 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
 
     function getTableDisplayText(sqlText, showBackticks) {
         if (!sqlText) return '';
-        if (showBackticks) {
-            return sqlText;
-        } else {
-            return sqlText.replace(/`/g, '');
-        }
+        if (showBackticks) return sqlText;
+        else return sqlText.replace(/`/g, '');
     }
 
     let currentFilteredData = [];
 
-    // Chart instances
     let mistakeChartInstance = null;
     let accuracyTrendChartInstance = null;
     let topicAccuracyChartInstance = null;
 
-    // Helper: group by date & compute accuracy %
     function computeDailyAccuracy(data) {
-        const dateMap = new Map(); // date -> { correct, total }
+        const dateMap = new Map();
         for (let rec of data) {
             if (!dateMap.has(rec.Date)) dateMap.set(rec.Date, { correct: 0, total: 0 });
             const entry = dateMap.get(rec.Date);
@@ -717,7 +726,6 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
         return { labels, accuracies };
     }
 
-    // Helper: group by topic & compute accuracy %
     function computeTopicAccuracy(data) {
         const topicMap = new Map();
         for (let rec of data) {
@@ -734,9 +742,8 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
         return { topics, accuracies };
     }
 
-    // Render all three charts: mistake (existing logic but keep), accuracy trend, topic horizontal bar
     function renderAllCharts() {
-        // 1) Existing mistake chart (line chart on mistake counts)
+        // 1) Mistake Frequency (first chart)
         const canvasMistake = document.getElementById('mistakeChart');
         if (canvasMistake) {
             const counts = {};
@@ -751,113 +758,32 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
             if (mistakeChartInstance) mistakeChartInstance.destroy();
             mistakeChartInstance = new Chart(canvasMistake, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Mistake Count',
-                        data: data,
-                        fill: true,
-                        tension: 0.4,
-                        borderColor: '#E76F51',    // rich warm orange/red
-                        backgroundColor: 'rgba(231, 111, 81, 0.1)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#F4A261',
-                        pointBorderColor: '#fff',
-                        pointRadius: 5,
-                        pointHoverRadius: 7
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: { legend: { position: 'top' }, tooltip: { enabled: true } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                }
+                data: { labels: labels, datasets: [{ label: 'Mistake Count', data: data, fill: true, tension: 0.4, borderColor: '#E76F51', backgroundColor: 'rgba(231, 111, 81, 0.1)', borderWidth: 3, pointBackgroundColor: '#F4A261', pointBorderColor: '#fff', pointRadius: 5 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
             });
         }
 
-        // 2) Accuracy Trend (Line Chart) - Group by Date, ascending order
+        // 2) Accuracy Trend (middle chart, longer)
         const { labels: dateLabels, accuracies } = computeDailyAccuracy(currentFilteredData);
         const accuracyCanvas = document.getElementById('accuracyTrendChart');
         if (accuracyCanvas) {
             if (accuracyTrendChartInstance) accuracyTrendChartInstance.destroy();
             accuracyTrendChartInstance = new Chart(accuracyCanvas, {
                 type: 'line',
-                data: {
-                    labels: dateLabels,
-                    datasets: [{
-                        label: 'Accuracy %',
-                        data: accuracies,
-                        fill: true,
-                        tension: 0.3,
-                        borderColor: '#2A9D8F',    // rich teal
-                        backgroundColor: 'rgba(42, 157, 143, 0.15)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#E9C46A',
-                        pointBorderColor: '#264653',
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointStyle: 'circle'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'top', labels: { font: { size: 11 } } },
-                        tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}%` } }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: { display: true, text: 'Accuracy (%)', color: '#2c5f7a' },
-                            ticks: { callback: (val) => val + '%' }
-                        },
-                        x: { title: { display: true, text: 'Date', color: '#2c5f7a' } }
-                    }
-                }
+                data: { labels: dateLabels, datasets: [{ label: 'Accuracy %', data: accuracies, fill: true, tension: 0.3, borderColor: '#2A9D8F', backgroundColor: 'rgba(42, 157, 143, 0.15)', borderWidth: 3, pointBackgroundColor: '#E9C46A', pointBorderColor: '#264653', pointRadius: 5 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}%` } } }, scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Accuracy (%)' }, ticks: { callback: (val) => val + '%' } }, x: { title: { display: true, text: 'Date' } } } }
             });
         }
 
-        // 3) Topic-wise Accuracy (Horizontal Bar Chart)
+        // 3) Topic-wise Accuracy (third chart, horizontal bar)
         const { topics, accuracies: topicAccuracies } = computeTopicAccuracy(currentFilteredData);
         const topicCanvas = document.getElementById('topicAccuracyChart');
         if (topicCanvas) {
             if (topicAccuracyChartInstance) topicAccuracyChartInstance.destroy();
             topicAccuracyChartInstance = new Chart(topicCanvas, {
                 type: 'bar',
-                data: {
-                    labels: topics,
-                    datasets: [{
-                        label: 'Accuracy %',
-                        data: topicAccuracies,
-                        backgroundColor: '#E9C46A',   // golden rich
-                        borderColor: '#F4A261',
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.9
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',   // horizontal bar chart
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}%` } }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: { display: true, text: 'Accuracy (%)', color: '#2c5f7a' },
-                            ticks: { callback: (val) => val + '%' }
-                        },
-                        y: { title: { display: true, text: 'Topic', color: '#2c5f7a' } }
-                    }
-                }
+                data: { labels: topics, datasets: [{ label: 'Accuracy %', data: topicAccuracies, backgroundColor: '#E9C46A', borderColor: '#F4A261', borderRadius: 6, barPercentage: 0.7 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}%` } } }, scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: 'Accuracy (%)' }, ticks: { callback: (val) => val + '%' } }, y: { title: { display: true, text: 'Topic' } } } }
             });
         }
     }
@@ -878,7 +804,6 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
             if (attemptVal === 'skipped' && rec.Attempt !== 0) return false;
             return true;
         });
-
         filtered.sort((a, b) => {
             const d1 = new Date(a.Date.split('-').reverse().join('-'));
             const d2 = new Date(b.Date.split('-').reverse().join('-'));
@@ -887,7 +812,7 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
         currentFilteredData = filtered;
         renderDashboardCards();
         updateKPIs();
-        renderAllCharts();  // update all three charts
+        renderAllCharts();
     }
 
     function renderDashboardCards() {
@@ -905,45 +830,9 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
                 let correctQueryDisplay = applyHiddenBacktickHighlighting(rec.CorrectQuery, 'correct');
                 const attemptText = rec.Attempt === 1 ? 'Attempted' : 'Skipped';
                 const mistakeChip = rec.MistakeType !== "None" ? `<span class="meta-chip mistake-chip">🧠 ${escapeHtml(rec.MistakeType)}</span>` : '';
-                return `
-                    <div class="query-item">
-                        <div class="query-header">
-                            <div class="query-info">
-                                <div class="query-meta">
-                                    <span class="meta-chip topic-chip">🏷️ ${escapeHtml(rec.Topic)}</span>
-                                    <span class="meta-chip difficulty-chip">⚡ ${escapeHtml(rec.Difficulty)}</span>
-                                    <span class="meta-chip ${resultClass}">${resultText}</span>
-                                    ${mistakeChip}
-                                    <span class="meta-chip attempt-chip">📌 ${attemptText}</span>
-                                </div>
-                                <div class="question-text">❓ ${escapeHtml(rec.Question)}</div>
-                            </div>
-                            <div class="query-toggle-icon">↓</div>
-                        </div>
-                        <div class="query-details">
-                            <div class="query-block">
-                                <div class="query-label">🔴 USER QUERY</div>
-                                <div class="query-content">${userQueryDisplay || '(empty)'}</div>
-                            </div>
-                            <div class="query-block">
-                                <div class="query-label">🟢 CORRECT QUERY</div>
-                                <div class="query-content">${correctQueryDisplay || '(empty)'}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return `<div class="query-item"><div class="query-header"><div class="query-info"><div class="query-meta"><span class="meta-chip topic-chip">🏷️ ${escapeHtml(rec.Topic)}</span><span class="meta-chip difficulty-chip">⚡ ${escapeHtml(rec.Difficulty)}</span><span class="meta-chip ${resultClass}">${resultText}</span>${mistakeChip}<span class="meta-chip attempt-chip">📌 ${attemptText}</span></div><div class="question-text">❓ ${escapeHtml(rec.Question)}</div></div><div class="query-toggle-icon">↓</div></div><div class="query-details"><div class="query-block"><div class="query-label">🔴 USER QUERY</div><div class="query-content">${userQueryDisplay || '(empty)'}</div></div><div class="query-block"><div class="query-label">🟢 CORRECT QUERY</div><div class="query-content">${correctQueryDisplay || '(empty)'}</div></div></div></div>`;
             }).join('');
-            html += `
-                <div class="date-group">
-                    <div class="date-group-header" data-date="${date}">
-                        <span>📅 ${date} &nbsp; (${records.length} attempts)</span>
-                        <span class="group-toggle">↓</span>
-                    </div>
-                    <div class="cards-group" data-group="${date}">
-                        ${itemsHtml}
-                    </div>
-                </div>
-            `;
+            html += `<div class="date-group"><div class="date-group-header" data-date="${date}"><span>📅 ${date} &nbsp; (${records.length} attempts)</span><span class="group-toggle">↓</span></div><div class="cards-group" data-group="${date}">${itemsHtml}</div></div>`;
         }
         document.getElementById('cardsContainer').innerHTML = html;
         attachGroupToggleEvents();
@@ -959,13 +848,8 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
     function groupToggleHandler(e) {
         const groupDiv = this.parentElement.querySelector('.cards-group');
         const icon = this.querySelector('.group-toggle');
-        if (groupDiv.classList.contains('collapsed')) {
-            groupDiv.classList.remove('collapsed');
-            icon.textContent = '↓';
-        } else {
-            groupDiv.classList.add('collapsed');
-            icon.textContent = '→';
-        }
+        if (groupDiv.classList.contains('collapsed')) { groupDiv.classList.remove('collapsed'); icon.textContent = '↓'; } 
+        else { groupDiv.classList.add('collapsed'); icon.textContent = '→'; }
     }
     function attachQueryToggleEvents() {
         document.querySelectorAll('.query-header').forEach(header => {
@@ -976,13 +860,8 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
     function queryToggleHandler(e) {
         const details = this.closest('.query-item').querySelector('.query-details');
         const icon = this.querySelector('.query-toggle-icon');
-        if (details.classList.contains('open')) {
-            details.classList.remove('open');
-            icon.textContent = '→';
-        } else {
-            details.classList.add('open');
-            icon.textContent = '↓';
-        }
+        if (details.classList.contains('open')) { details.classList.remove('open'); icon.textContent = '→'; } 
+        else { details.classList.add('open'); icon.textContent = '↓'; }
     }
 
     function updateKPIs() {
@@ -990,12 +869,7 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
         const wrong = currentFilteredData.filter(r => r.Correct === 0).length;
         const accuracy = total ? ((total - wrong)/total * 100).toFixed(1) : 0;
         const uniqueTopics = [...new Set(currentFilteredData.map(r => r.Topic))].length;
-        document.getElementById('kpiContainer').innerHTML = `
-            <div class="kpi-card"><div class="kpi-number">${total}</div><div class="kpi-label">Attempts</div></div>
-            <div class="kpi-card"><div class="kpi-number">${wrong}</div><div class="kpi-label">Mistakes</div></div>
-            <div class="kpi-card"><div class="kpi-number">${accuracy}%</div><div class="kpi-label">Accuracy</div></div>
-            <div class="kpi-card"><div class="kpi-number">${uniqueTopics}</div><div class="kpi-label">Topics</div></div>
-        `;
+        document.getElementById('kpiContainer').innerHTML = `<div class="kpi-card"><div class="kpi-number">${total}</div><div class="kpi-label">Attempts</div></div><div class="kpi-card"><div class="kpi-number">${wrong}</div><div class="kpi-label">Mistakes</div></div><div class="kpi-card"><div class="kpi-number">${accuracy}%</div><div class="kpi-label">Accuracy</div></div><div class="kpi-card"><div class="kpi-number">${uniqueTopics}</div><div class="kpi-label">Topics</div></div>`;
     }
 
     function populateFilters() {
@@ -1010,97 +884,34 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
         const headers = ['Date', 'Question', 'Topic', 'Difficulty', 'User Query', 'Correct Query', 'Mistake Type', 'Correct', 'Attempt'];
         thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
         tbody.innerHTML = '';
-        practiceRecords.forEach((rec, idx) => {
+        practiceRecords.forEach((rec) => {
             const row = tbody.insertRow();
-            const userDisplayText = getTableDisplayText(rec.UserQuery, backtickVisibleInTable);
-            const correctDisplayText = getTableDisplayText(rec.CorrectQuery, backtickVisibleInTable);
             row.insertCell(0).textContent = rec.Date;
             row.insertCell(1).textContent = rec.Question;
             row.insertCell(2).textContent = rec.Topic;
             row.insertCell(3).textContent = rec.Difficulty;
-            row.insertCell(4).textContent = userDisplayText;
-            row.insertCell(5).textContent = correctDisplayText;
+            row.insertCell(4).textContent = getTableDisplayText(rec.UserQuery, backtickVisibleInTable);
+            row.insertCell(5).textContent = getTableDisplayText(rec.CorrectQuery, backtickVisibleInTable);
             row.insertCell(6).textContent = rec.MistakeType;
             row.insertCell(7).textContent = rec.Correct;
             row.insertCell(8).textContent = rec.Attempt;
         });
     }
 
-    function copyTableToClipboard() {
-        let tableText = '';
-        const rows = document.querySelectorAll('#sourceTable tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('th, td');
-            const rowText = Array.from(cells).map(cell => cell.textContent).join('\t');
-            tableText += rowText + '\n';
-        });
-        navigator.clipboard.writeText(tableText).then(() => alert('Table copied!')).catch(() => alert('Copy failed'));
-    }
-
-    function toggleBacktickDisplayMode() {
-        backtickVisibleInTable = !backtickVisibleInTable;
-        renderDataTable();
-        const btn = document.getElementById('toggleBacktickBtn');
-        btn.textContent = backtickVisibleInTable ? '🎨 Hide Backticks' : '🎨 Show Backticks';
-    }
-
-    function parseTSVToRecords(tsv, append = false) {
-        const lines = tsv.trim().split(/\r?\n/);
-        if (lines.length < 1) return;
-        const newRecords = [];
-        for (let i = 0; i < lines.length; i++) {
-            const cols = lines[i].split('\t');
-            if (cols.length >= 9) {
-                newRecords.push({
-                    Date: cols[0].trim(),
-                    Question: cols[1].trim(),
-                    Topic: cols[2].trim(),
-                    Difficulty: cols[3].trim(),
-                    UserQuery: cols[4].trim(),
-                    CorrectQuery: cols[5].trim(),
-                    MistakeType: cols[6].trim(),
-                    Correct: parseInt(cols[7].trim(), 10),
-                    Attempt: parseInt(cols[8].trim(), 10)
-                });
-            }
-        }
-        if (newRecords.length) {
-            if (append) practiceRecords.push(...newRecords);
-            else practiceRecords = newRecords;
-            populateFilters();
-            renderDataTable();
-            applyFiltersAndSort();
-        }
-    }
-
     function toggleFilterBarVisibility(activeTabId) {
         const filterBar = document.getElementById('globalFilterBar');
-        if (activeTabId === 'dashboard') {
-            filterBar.classList.remove('hidden-filter');
-        } else {
-            filterBar.classList.add('hidden-filter');
-        }
+        if (activeTabId === 'dashboard') filterBar.classList.remove('hidden-filter');
+        else filterBar.classList.add('hidden-filter');
     }
 
-    // Event listeners
     document.getElementById('topicFilter').addEventListener('change', applyFiltersAndSort);
     document.getElementById('difficultyFilter').addEventListener('change', applyFiltersAndSort);
     document.getElementById('dateOrder').addEventListener('change', applyFiltersAndSort);
     document.getElementById('resultFilter').addEventListener('change', applyFiltersAndSort);
     document.getElementById('attemptSort').addEventListener('change', applyFiltersAndSort);
-    document.getElementById('refreshCardsFromTable').addEventListener('click', () => { renderDataTable(); applyFiltersAndSort(); });
-    document.getElementById('copyTableBtn').addEventListener('click', copyTableToClipboard);
-    document.getElementById('toggleBacktickBtn').addEventListener('click', toggleBacktickDisplayMode);
-    document.getElementById('importPasteBtn').addEventListener('click', () => { const tsv = document.getElementById('pasteData').value; if (tsv) parseTSVToRecords(tsv, false); });
-    document.getElementById('appendPasteBtn').addEventListener('click', () => { const tsv = document.getElementById('pasteData').value; if (tsv) parseTSVToRecords(tsv, true); });
 
     const mainTabs = document.querySelectorAll('.main-tab-btn');
-    const panes = {
-        dashboard: document.getElementById('dashboardPane'),
-        metrics: document.getElementById('metricsPane'),
-        paste: document.getElementById('pastePane'),
-        table: document.getElementById('tablePane')
-    };
+    const panes = { dashboard: document.getElementById('dashboardPane'), metrics: document.getElementById('metricsPane'), paste: document.getElementById('pastePane'), table: document.getElementById('tablePane') };
     mainTabs.forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-main-tab');
@@ -1108,18 +919,12 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
             btn.classList.add('active');
             Object.values(panes).forEach(pane => pane.classList.remove('active'));
             if (tabId === 'dashboard') { panes.dashboard.classList.add('active'); toggleFilterBarVisibility('dashboard'); applyFiltersAndSort(); }
-            if (tabId === 'metrics') { 
-                panes.metrics.classList.add('active'); 
-                toggleFilterBarVisibility('metrics'); 
-                updateKPIs(); 
-                setTimeout(() => renderAllCharts(), 30);
-            }
+            if (tabId === 'metrics') { panes.metrics.classList.add('active'); toggleFilterBarVisibility('metrics'); updateKPIs(); setTimeout(() => renderAllCharts(), 30); }
             if (tabId === 'paste') { panes.paste.classList.add('active'); toggleFilterBarVisibility('paste'); }
             if (tabId === 'table') { panes.table.classList.add('active'); toggleFilterBarVisibility('table'); renderDataTable(); }
         });
     });
 
-    // Start the app
     initApp();
 </script>
 </body>
