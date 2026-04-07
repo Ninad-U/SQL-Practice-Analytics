@@ -355,7 +355,7 @@
         .cards-group.collapsed {
             display: none;
         }
-
+		
         .query-item {
             border-bottom: 1px solid #a0a8b4;
             background: #fefefe;
@@ -450,6 +450,15 @@
             font-family: monospace;
             display: inline-block;
         }
+		.user-backtick-highlight-green {
+    		background-color: #d4f5e2;
+    		color: #0a6e3a;
+    		font-weight: 700;
+    		border-radius: 6px;
+    		padding: 0 4px;
+    		font-family: monospace;
+    		display: inline-block;
+		}
         .correct-backtick-highlight {
             background-color: #d4f5e2;
             color: #0a6e3a;
@@ -660,7 +669,7 @@ Date	Question	Topic	Difficulty	User Query	Correct Query	Mistake Type	Correct	Att
             if (isFullyWrapped) {
                 const content = sqlText.trim().slice(1, -1);
                 const escapedContent = escapeHtml(content);
-                return `<span class="user-backtick-highlight-green" style="background-color:#d4f5e2;color:#0a6e3a;">${escapedContent}</span>`;
+                return `<span class="user-backtick-highlight-green">${escapedContent}</span>`;
             } else {
                 const highlighted = escaped.replace(/`([^`]+)`/g, (match, content) => {
                     return `<span style="background-color:#ffe0e0;color:#b91c1c;font-weight:700;">${content}</span>`;
