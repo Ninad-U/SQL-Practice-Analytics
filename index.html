@@ -845,7 +845,7 @@
                 let userQueryDisplay = applyHiddenBacktickHighlighting(rec.UserQuery, 'user');
                 let correctQueryDisplay = applyHiddenBacktickHighlighting(rec.CorrectQuery, 'correct');
                 const attemptText = rec.Attempt === 1 ? 'Attempted' : 'Skipped';
-                const mistakeChip = rec.MistakeType !== "None" ? `<span class="meta-chip mistake-chip">🧠 ${escapeHtml(rec.MistakeType)}</span>` : '';
+                const mistakeChip = rec.MistakeType !== "None" && rec.MistakeType !== "Correct" ? `<span class="meta-chip mistake-chip">🧠 ${escapeHtml(rec.MistakeType)}</span>` : '';
                 return `<div class="query-item"><div class="query-header"><div class="query-info"><div class="query-meta"><span class="meta-chip topic-chip">🏷️ ${escapeHtml(rec.Topic)}</span><span class="meta-chip difficulty-chip">⚡ ${escapeHtml(rec.Difficulty)}</span><span class="meta-chip ${resultClass}">${resultText}</span>${mistakeChip}<span class="meta-chip attempt-chip">📌 ${attemptText}</span></div><div class="question-text">❓ ${escapeHtml(rec.Question)}</div></div><div class="query-toggle-icon">↓</div></div><div class="query-details"><div class="query-block"><div class="query-label">🔴 USER QUERY</div><div class="query-content">${userQueryDisplay || '(empty)'}</div></div><div class="query-block"><div class="query-label">🟢 CORRECT QUERY</div><div class="query-content">${correctQueryDisplay || '(empty)'}</div></div></div></div>`;
             }).join('');
             html += `<div class="date-group"><div class="date-group-header" data-date="${date}"><span>📅 ${date} &nbsp; (${records.length} attempts)</span><span class="group-toggle">↓</span></div><div class="cards-group" data-group="${date}">${itemsHtml}</div></div>`;
