@@ -732,6 +732,8 @@
         return { labels, accuracies };
     }
 
+	// Alphabetic Sort - Discontinued
+	/*
     function computeTopicAccuracy(data) {
         const topicMap = new Map();
         for (let rec of data) {
@@ -747,6 +749,36 @@
         });
         return { topics, accuracies };
     }
+	*/
+
+	function computeTopicAccuracy(data) {
+    const topicMap = new Map();
+
+    for (let rec of data) {
+        if (!topicMap.has(rec.Topic)) {
+            topicMap.set(rec.Topic, { correct: 0, total: 0 });
+        }
+        const entry = topicMap.get(rec.Topic);
+        entry.total++;
+        if (rec.Correct === 1) entry.correct++;
+    }
+
+    // Convert to array with accuracy
+    const topicArray = Array.from(topicMap.entries()).map(([topic, val]) => {
+        const accuracy = val.total === 0 ? 0 : (val.correct / val.total) * 100;
+        return { topic, accuracy };
+    });
+
+    // 🔥 SORT BY ACCURACY DESCENDING
+    topicArray.sort((a, b) => b.accuracy - a.accuracy);
+
+    // Split back into labels + data
+    const topics = topicArray.map(t => t.topic);
+    const accuracies = topicArray.map(t => t.accuracy);
+
+    return { topics, accuracies };
+	}
+	
 
     function renderAllCharts() {
         // 1) Mistake Frequency (now secondary - left)
